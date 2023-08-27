@@ -409,7 +409,7 @@ with block:
                         rounded=(True, False, False, True),
                         container=False,
                     )
-                    aspect_ratio_dropdown = gr.Dropdown(
+                    aspect_ratio = gr.Dropdown(
                         label="Aspect ratio",
                         choices=aspect_ratios,
                         default="1:1",
@@ -457,11 +457,11 @@ with block:
         ex = gr.Examples(examples=examples, fn=infer, inputs=[text, negative, guidance_scale],
                          outputs=[gallery, community_icon, loading_icon, share_button], cache_examples=False)
         ex.dataset.headers = [""]
-        text.submit(infer, inputs=[text, negative, guidance_scale, aspect_ratio_dropdown], outputs=[gallery],
+        text.submit(infer, inputs=[text, negative, guidance_scale, aspect_ratio], outputs=[gallery],
                     postprocess=False)
-        negative.submit(infer, inputs=[text, negative, guidance_scale, aspect_ratio_dropdown], outputs=[gallery],
+        negative.submit(infer, inputs=[text, negative, guidance_scale, aspect_ratio], outputs=[gallery],
                         postprocess=False)
-        btn.click(infer, inputs=[text, negative, guidance_scale, aspect_ratio_dropdown], outputs=[gallery],
+        btn.click(infer, inputs=[text, negative, guidance_scale, aspect_ratio], outputs=[gallery],
                   postprocess=False)
 
         # advanced_button.click(
