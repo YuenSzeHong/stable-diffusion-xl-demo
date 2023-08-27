@@ -45,7 +45,8 @@ if default_num_images < 1:
 share = os.getenv("SHARE", "false").lower() == "true"
 
 print("Loading model", model_key_base)
-pipe = DiffusionPipeline.from_pretrained(model_key_base, torch_dtype=torch.float16, use_safetensors=True, variant="fp16")
+pipe = DiffusionPipeline.from_pretrained(model_key_base, torch_dtype=torch.float16, use_safetensors=True,
+                                         variant="fp16")
 
 multi_gpu = os.getenv("MULTI_GPU", "false").lower() == "true"
 
@@ -54,8 +55,8 @@ if multi_gpu:
     (pipe.unet.config,
      pipe.unet.dtype,
      pipe.unet.add_embedding) = (pipe.unet.module.config,
-                                  pipe.unet.module.dtype,
-                                  pipe.unet.module.add_embedding)
+                                 pipe.unet.module.dtype,
+                                 pipe.unet.module.add_embedding)
     pipe.to("cuda")
 else:
     if offload_base:
@@ -70,7 +71,8 @@ else:
 
 if enable_refiner:
     print("Loading model", model_key_refiner)
-    pipe_refiner = DiffusionPipeline.from_pretrained(model_key_refiner, torch_dtype=torch.float16, use_safetensors=True, variant="fp16")
+    pipe_refiner = DiffusionPipeline.from_pretrained(model_key_refiner, torch_dtype=torch.float16, use_safetensors=True,
+                                                     variant="fp16")
     if multi_gpu:
         pipe_refiner.unet = UNetDataParallel(pipe_refiner.unet)
         pipe_refiner.unet.config, pipe_refiner.unet.dtype, pipe_refiner.unet.add_embedding = pipe_refiner.unet.module.config, pipe_refiner.unet.module.dtype, pipe_refiner.unet.module.add_embedding
@@ -90,6 +92,7 @@ if enable_refiner:
 
 is_gpu_busy = False
 
+
 def infer(prompt, negative, aspect_ratio, scale, samples=4, steps=50, refiner_strength=0.3, seed=-1):
     prompt, negative = [prompt] * samples, [negative] * samples
 
@@ -103,7 +106,7 @@ def infer(prompt, negative, aspect_ratio, scale, samples=4, steps=50, refiner_st
 
     # Calculate width and height based on the selected aspect ratio
     w, h = (int(e) for e in aspect_ratio.split(':'))
-    width, height = (round(math.sqrt((1024*1024) * x / y) / 8) * 8 for x, y in ((w, h), (h, w)))
+    width, height = (round(math.sqrt((1024 * 1024) * x / y) / 8) * 8 for x, y in ((w, h), (h, w)))
 
     if not enable_refiner or output_images_before_refiner:
         images = pipe(prompt=prompt,
@@ -135,11 +138,12 @@ def infer(prompt, negative, aspect_ratio, scale, samples=4, steps=50, refiner_st
                 buffered = BytesIO()
                 image.save(buffered, format="JPEG")
                 img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
-                
+
                 image_b64 = (f"data:image/jpeg;base64,{img_str}")
                 images_b64_list.append(image_b64)
 
-        images = pipe_refiner(prompt=prompt, negative_prompt=negative, image=images, num_inference_steps=steps, strength=refiner_strength, generator=g).images
+        images = pipe_refiner(prompt=prompt, negative_prompt=negative, image=images, num_inference_steps=steps,
+                              strength=refiner_strength, generator=g).images
 
         gc.collect()
         torch.cuda.empty_cache()
@@ -148,18 +152,18 @@ def infer(prompt, negative, aspect_ratio, scale, samples=4, steps=50, refiner_st
         buffered = BytesIO()
         image.save(buffered, format="JPEG")
         img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
-        
+
         image_b64 = (f"data:image/jpeg;base64,{img_str}")
         images_b64_list.append(image_b64)
-    
+
     return images_b64_list
 
 
-aspect_ratios = [(a,a) for a in ["1:1", "4:1", "16:9", "5:2",
-                 "2:1", "7:4", "3:2", "8:7",
-                 "9:8", "8:9", "7:8", "2:3",
-                 "4:7", "1:2", "2:5", "1:3",
-                 "9:16"]]
+aspect_ratios = [(a, a) for a in ["1:1", "4:1", "16:9", "5:2",
+                                  "2:1", "7:4", "3:2", "8:7",
+                                  "9:8", "8:9", "7:8", "2:3",
+                                  "4:7", "1:2", "2:5", "1:3",
+                                  "9:16"]]
 
 css = """
         .gradio-container {
@@ -315,7 +319,6 @@ examples = [
     ],
 ]
 
-
 with block:
     gr.HTML(
         """
@@ -424,20 +427,22 @@ with block:
         ).style(grid=[2], height="auto")
 
         with gr.Group(elem_id="container-advanced-btns"):
-            #advanced_button = gr.Button("Advanced options", elem_id="advanced-btn")
+            # advanced_button = gr.Button("Advanced options", elem_id="advanced-btn")
             with gr.Group(elem_id="share-btn-container"):
                 community_icon = gr.HTML(community_icon_html)
                 loading_icon = gr.HTML(loading_icon_html)
                 share_button = gr.Button("Share to community", elem_id="share-btn")
 
         with gr.Accordion("Advanced settings", open=False):
-        #    gr.Markdown("Advanced settings are temporarily unavailable")
-            samples = gr.Slider(label="Images", minimum=1, maximum=max(4, default_num_images), value=default_num_images, step=1)
+            #    gr.Markdown("Advanced settings are temporarily unavailable")
+            samples = gr.Slider(label="Images", minimum=1, maximum=max(4, default_num_images), value=default_num_images,
+                                step=1)
             steps = gr.Slider(label="Steps", minimum=1, maximum=250, value=50, step=1)
             if enable_refiner:
                 refiner_strength = gr.Slider(label="Refiner Strength", minimum=0, maximum=1.0, value=0.3, step=0.1)
             else:
-                refiner_strength = gr.Slider(label="Refiner Strength (refiner not enabled)", minimum=0, maximum=0, value=0, step=0)
+                refiner_strength = gr.Slider(label="Refiner Strength (refiner not enabled)", minimum=0, maximum=0,
+                                             value=0, step=0)
             guidance_scale = gr.Slider(
                 label="Guidance Scale", minimum=0, maximum=50, value=9, step=0.1
             )
@@ -450,7 +455,8 @@ with block:
                 randomize=True,
             )
 
-        ex = gr.Examples(examples=examples, fn=infer, inputs=[text, negative, guidance_scale], outputs=[gallery, community_icon, loading_icon, share_button], cache_examples=False)
+        ex = gr.Examples(examples=examples, fn=infer, inputs=[text, negative, guidance_scale],
+                         outputs=[gallery, community_icon, loading_icon, share_button], cache_examples=False)
         ex.dataset.headers = [""]
         text.submit(infer, inputs=[text, negative, guidance_scale, aspect_ratio_dropdown], outputs=[gallery],
                     postprocess=False)
@@ -459,7 +465,7 @@ with block:
         btn.click(infer, inputs=[text, negative, guidance_scale, aspect_ratio_dropdown], outputs=[gallery],
                   postprocess=False)
 
-        #advanced_button.click(
+        # advanced_button.click(
         #    None,
         #    [],
         #    text,
@@ -468,7 +474,7 @@ with block:
         #        const options = document.querySelector("body > gradio-app").querySelector("#advanced-options");
         #        options.style.display = ["none", ""].includes(options.style.display) ? "flex" : "none";
         #    }""",
-        #)
+        # )
         share_button.click(
             None,
             [],
