@@ -410,12 +410,10 @@ with block:
                         container=False,
                     )
                     aspect_ratio_dropdown = gr.Dropdown(
-                        placeholder="Aspect Ratio",
+                        label="Aspect ratio",
                         choices=aspect_ratios,
                         default="1:1",
-                        show_label=False,
                         elem_id="aspect-ratio-dropdown",
-                        search=True  # Enables search functionality
                     )
                 btn = gr.Button("Generate image").style(
                     margin=False,
