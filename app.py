@@ -1,3 +1,5 @@
+import math
+
 import gradio as gr
 
 from diffusers import DiffusionPipeline
@@ -49,7 +51,11 @@ multi_gpu = os.getenv("MULTI_GPU", "false").lower() == "true"
 
 if multi_gpu:
     pipe.unet = UNetDataParallel(pipe.unet)
-    pipe.unet.config, pipe.unet.dtype, pipe.unet.add_embedding = pipe.unet.module.config, pipe.unet.module.dtype, pipe.unet.module.add_embedding
+    (pipe.unet.config,
+     pipe.unet.dtype,
+     pipe.unet.add_embedding) = (pipe.unet.module.config,
+                                  pipe.unet.module.dtype,
+                                  pipe.unet.module.add_embedding)
     pipe.to("cuda")
 else:
     if offload_base:
@@ -83,7 +89,8 @@ if enable_refiner:
 # NOTE: we do not have word list filtering in this gradio demo
 
 is_gpu_busy = False
-def infer(prompt, negative, scale, samples=4, steps=50, refiner_strength=0.3, seed=-1):
+
+def infer(prompt, negative, aspect_ratio, scale, samples=4, steps=50, refiner_strength=0.3, seed=-1):
     prompt, negative = [prompt] * samples, [negative] * samples
 
     g = torch.Generator(device="cuda")
@@ -94,11 +101,30 @@ def infer(prompt, negative, scale, samples=4, steps=50, refiner_strength=0.3, se
 
     images_b64_list = []
 
+    # Calculate width and height based on the selected aspect ratio
+    w, h = (int(e) for e in aspect_ratio.split(':'))
+    width, height = (round(math.sqrt((1024*1024) * x / y) / 8) * 8 for x, y in ((w, h), (h, w)))
+
     if not enable_refiner or output_images_before_refiner:
-        images = pipe(prompt=prompt, negative_prompt=negative, guidance_scale=scale, num_inference_steps=steps, generator=g).images
+        images = pipe(prompt=prompt,
+                      negative_prompt=negative,
+                      guidance_scale=scale,
+                      num_inference_steps=steps,
+                      generator=g,
+                      width=width,
+                      height=height,
+                      ).images
     else:
         # This skips the decoding and re-encoding for refinement.
-        images = pipe(prompt=prompt, negative_prompt=negative, guidance_scale=scale, num_inference_steps=steps, output_type="latent", generator=g).images
+        images = pipe(prompt=prompt,
+                      negative_prompt=negative,
+                      guidance_scale=scale,
+                      num_inference_steps=steps,
+                      output_type="latent",
+                      generator=g,
+                      width=width,
+                      height=height,
+                      ).images
 
     gc.collect()
     torch.cuda.empty_cache()
@@ -127,8 +153,14 @@ def infer(prompt, negative, scale, samples=4, steps=50, refiner_strength=0.3, se
         images_b64_list.append(image_b64)
     
     return images_b64_list
-    
-    
+
+
+aspect_ratios = ["1:1", "4:1", "16:9", "5:2",
+                 "2:1", "7:4", "3:2", "8:7",
+                 "9:8", "8:9", "7:8", "2:3",
+                 "4:7", "1:2", "2:5", "1:3",
+                 "9:16"]
+
 css = """
         .gradio-container {
             font-family: 'IBM Plex Sans', sans-serif;
@@ -374,6 +406,13 @@ with block:
                         rounded=(True, False, False, True),
                         container=False,
                     )
+                    aspect_ratio_dropdown = gr.Dropdown(
+                        label="Aspect Ratio",
+                        choices=aspect_ratios,
+                        default="1:1",
+                        elem_id="aspect-ratio-dropdown",
+                        search=True  # Enables search functionality
+                    )
                 btn = gr.Button("Generate image").style(
                     margin=False,
                     rounded=(False, True, True, False),
@@ -413,10 +452,13 @@ with block:
 
         ex = gr.Examples(examples=examples, fn=infer, inputs=[text, negative, guidance_scale], outputs=[gallery, community_icon, loading_icon, share_button], cache_examples=False)
         ex.dataset.headers = [""]
-        negative.submit(infer, inputs=[text, negative, guidance_scale, samples, steps, refiner_strength, seed], outputs=[gallery], postprocess=False)
-        text.submit(infer, inputs=[text, negative, guidance_scale, samples, steps, refiner_strength, seed], outputs=[gallery], postprocess=False)
-        btn.click(infer, inputs=[text, negative, guidance_scale, samples, steps, refiner_strength, seed], outputs=[gallery], postprocess=False)
-        
+        text.submit(infer, inputs=[text, negative, guidance_scale, aspect_ratio_dropdown], outputs=[gallery],
+                    postprocess=False)
+        negative.submit(infer, inputs=[text, negative, guidance_scale, aspect_ratio_dropdown], outputs=[gallery],
+                        postprocess=False)
+        btn.click(infer, inputs=[text, negative, guidance_scale, aspect_ratio_dropdown], outputs=[gallery],
+                  postprocess=False)
+
         #advanced_button.click(
         #    None,
         #    [],
