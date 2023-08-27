@@ -155,11 +155,11 @@ def infer(prompt, negative, aspect_ratio, scale, samples=4, steps=50, refiner_st
     return images_b64_list
 
 
-aspect_ratios = ["1:1", "4:1", "16:9", "5:2",
+aspect_ratios = [(a,a) for a in ["1:1", "4:1", "16:9", "5:2",
                  "2:1", "7:4", "3:2", "8:7",
                  "9:8", "8:9", "7:8", "2:3",
                  "4:7", "1:2", "2:5", "1:3",
-                 "9:16"]
+                 "9:16"]]
 
 css = """
         .gradio-container {
