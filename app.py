@@ -103,7 +103,7 @@ def infer(prompt, negative, aspect_ratio, scale, samples=4, steps=50, refiner_st
         g.seed()
 
     images_b64_list = []
-
+    print(aspect_ratio)
     # Calculate width and height based on the selected aspect ratio
     w, h = (int(e) for e in aspect_ratio.split(':'))
     width, height = (round(math.sqrt((1024 * 1024) * x / y) / 8) * 8 for x, y in ((w, h), (h, w)))
@@ -159,11 +159,11 @@ def infer(prompt, negative, aspect_ratio, scale, samples=4, steps=50, refiner_st
     return images_b64_list
 
 
-aspect_ratios = [(a, a) for a in ["1:1", "4:1", "16:9", "5:2",
-                                  "2:1", "7:4", "3:2", "8:7",
-                                  "9:8", "8:9", "7:8", "2:3",
-                                  "4:7", "1:2", "2:5", "1:3",
-                                  "9:16"]]
+aspect_ratios = ["1:1", "4:1", "16:9", "5:2",
+                 "2:1", "7:4", "3:2", "8:7",
+                 "9:8", "8:9", "7:8", "2:3",
+                 "4:7", "1:2", "2:5", "1:3",
+                 "9:16"]
 
 css = """
         .gradio-container {
@@ -410,9 +410,10 @@ with block:
                         container=False,
                     )
                     aspect_ratio_dropdown = gr.Dropdown(
-                        label="Aspect Ratio",
+                        placeholder="Aspect Ratio",
                         choices=aspect_ratios,
                         default="1:1",
+                        show_label=False,
                         elem_id="aspect-ratio-dropdown",
                         search=True  # Enables search functionality
                     )
